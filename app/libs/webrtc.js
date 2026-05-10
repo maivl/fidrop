@@ -1,0 +1,38 @@
+export const rtcConfig = {
+  iceServers: [
+    {
+      urls:
+        "stun:global.relay.metered.ca:80",
+    },
+    {
+      urls:
+        "turn:global.relay.metered.ca:80",
+      username:
+        process.env
+          .NEXT_PUBLIC_TURN_USERNAME,
+      credential:
+        process.env
+          .NEXT_PUBLIC_TURN_PASSWORD,
+    },
+    {
+      urls:
+        "turn:global.relay.metered.ca:443",
+      username:
+        process.env
+          .NEXT_PUBLIC_TURN_USERNAME,
+      credential:
+        process.env
+          .NEXT_PUBLIC_TURN_PASSWORD,
+    },
+    {
+      urls:
+        "turns:global.relay.metered.ca:443?transport=tcp",
+      username:
+        process.env
+          .NEXT_PUBLIC_TURN_USERNAME,
+      credential:
+        process.env
+          .NEXT_PUBLIC_TURN_PASSWORD,
+    },
+  ],
+};

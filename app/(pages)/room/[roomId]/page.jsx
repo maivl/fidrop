@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
 import QRCode from "react-qr-code";
+import { rtcConfig } from "@/libs/webrtc";
 
 const adjectives = [
     "Blue",
@@ -128,14 +129,9 @@ export default function RoomPage() {
             );
 
             const peer =
-                new RTCPeerConnection({
-                    iceServers: [
-                        {
-                            urls:
-                                process.env.NEXT_PUBLIC_STUN_URL,
-                        },
-                    ],
-                });
+                new RTCPeerConnection(
+                    rtcConfig
+                );
 
             peerRef.current = peer;
 
