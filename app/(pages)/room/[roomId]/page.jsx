@@ -32,6 +32,8 @@ export default function RoomPage() {
     const [selectedTargets, setSelectedTargets] = useState(["all"]);
     const [deviceName, setDeviceName] = useState("");
     const [isHydrated, setIsHydrated] = useState(false);
+    const [approvalStatus, setApprovalStatus] = useState("pending"); // pending, approved, rejected
+    const [isApproved, setIsApproved] = useState(false);
     // Refs
     const deviceNameRef = useRef("");
     const wsRef = useRef(null);
@@ -69,14 +71,160 @@ export default function RoomPage() {
     }, [roomUsers, isHost]);
 
     const generateRandomName = useCallback(() => {
-        const adjectives = ["Blue",
-            "Silver",
-            "Neon",
-            "Green",
-            "Red",
-            "Golden",
-            "Shadow", "Swift", "Brave", "Clever", "Mighty", "Noble", "Wise"];
-        const nouns = ["Phoenix", "Tiger", "Eagle", "Wolf", "Dragon", "Knight", "Panda", "Fox", "Falcon", "Bear"];
+        const adjectives = [
+            // Colors
+            "Blue", "Silver", "Neon", "Green", "Red", "Golden", "Crimson", "Scarlet", "Violet", "Purple",
+            "Indigo", "Teal", "Cyan", "Magenta", "Rose", "Amber", "Emerald", "Sapphire", "Ruby", "Onyx",
+            "Ivory", "Pearl", "Coral", "Lavender", "Mauve", "Turquoise", "Azure", "Cerulean", "Chartreuse",
+            "Fuchsia", "Lilac", "Maroon", "Olive", "Orchid", "Plum", "Tan", "Wheat",
+
+            // Qualities
+            "Shadow", "Swift", "Brave", "Clever", "Mighty", "Noble", "Wise", "Fierce", "Gentle", "Loyal",
+            "Silent", "Quick", "Bold", "Calm", "Wild", "Savage", "Kind", "Dark", "Light", "Bright",
+            "Storm", "Thunder", "Lightning", "Blizzard", "Hurricane", "Typhoon", "Tornado", "Volcano",
+            "Crystal", "Iron", "Steel", "Bronze", "Titanium", "Obsidian", "Granite", "Marble",
+
+            // Mythical & Fantasy
+            "Ancient", "Mystic", "Legendary", "Mythical", "Divine", "Eternal", "Immortal", "Celestial",
+            "Cosmic", "Galactic", "Stellar", "Astral", "Ethereal", "Phantom", "Ghostly", "Spirit",
+            "Enchanted", "Magical", "Arcane", "Sorcerer", "Wizardly", "Druidic", "Runic",
+
+            // Nature
+            "Wild", "Forest", "Mountain", "Ocean", "River", "Desert", "Jungle", "Arctic", "Tropical",
+            "Solar", "Lunar", "Starry", "Comet", "Meteor", "Aurora", "Eclipse", "Equinox",
+
+            // Action
+            "Running", "Flying", "Hunting", "Racing", "Leaping", "Soaring", "Diving", "Swimming",
+            "Roaring", "Howling", "Screaming", "Whispering", "Sleeping", "Dreaming",
+
+            // Tech
+            "Cyber", "Digital", "Quantum", "Atomic", "Neon", "Laser", "Plasma", "Rocket", "Turbo",
+            "Hyper", "Ultra", "Super", "Mega", "Giga", "Tera", "Infinite",
+
+            // Descriptive
+            "Abrupt", "Agile", "Alert", "Alive", "Alone", "Amused", "Angry", "Animated", "Anxious",
+            "Arctic", "Arid", "Armed", "Arrogant", "Ashamed", "Aspiring", "Astonished", "Attentive",
+            "Average", "Awake", "Aware", "Awesome", "Awkward", "Bad", "Balanced", "Bare", "Basic",
+            "Battle", "Beaming", "Beloved", "Benevolent", "Berserk", "Big", "Bitter", "Bizarre",
+
+            // More
+            "Blazing", "Blind", "Blissful", "Blunt", "Boastful", "Bold", "Bouncy", "Boundless",
+            "Brainy", "Brawny", "Breezy", "Brief", "Bright", "Brilliant", "Brisk", "Broken",
+            "Brooding", "Bubbly", "Burly", "Busy", "Cagey", "Calculating", "Callous", "Capable",
+            "Careful", "Careless", "Caring", "Casual", "Cautious", "Cerebral", "Charming",
+            "Cheerful", "Chilled", "Chilly", "Chubby", "Civil", "Civilized", "Clammy", "Classy",
+            "Clean", "Clear", "Clever", "Cloaked", "Cloudy", "Clumsy", "Coastal", "Coding",
+            "Cold", "Combat", "Comfy", "Comic", "Comical", "Commando", "Common", "Complex",
+            "Concerned", "Confident", "Confused", "Cool", "Cooperative", "Coordinated", "Courageous",
+            "Cozy", "Crafty", "Crazy", "Creative", "Creepy", "Critical", "Crooked", "Cruel",
+            "Crunchy", "Cuddly", "Curious", "Curly", "Curved", "Cute", "Damaged", "Damp",
+            "Dangerous", "Dark", "Darling", "Dead", "Deadly", "Deaf", "Dear", "Deceitful",
+            "Deep", "Defeated", "Defiant", "Delayed", "Delicate", "Delicious", "Delightful",
+            "Dense", "Dependable", "Depressed", "Deserted", "Detailed", "Determined", "Devoted",
+            "Different", "Difficult", "Digital", "Diligent", "Dim", "Dimpled", "Direct", "Dirty",
+            "Discreet", "Discrete", "Dismal", "Distant", "Distinct", "Distorted", "Dizzy",
+            "Dopey", "Doting", "Double", "Doubtful", "Drab", "Draconian", "Drafty", "Drained",
+            "Dramatic", "Dreary", "Drenched", "Driven", "Droopy", "Drowsy", "Drunk", "Dry",
+            "Dual", "Dull", "Dusty", "Dwarf", "Dying", "Dynamic", "Eager", "Early", "Earnest",
+            "Earthly", "Earthy", "East", "Eastern", "Easy", "Edible", "Educated", "Eerie",
+            "Efficient", "Elaborate", "Elastic", "Elderly", "Electric", "Elegant", "Elemental",
+            "Elite", "Eloquent", "Empty", "Enchanted", "Enclosed", "Endless", "Enhanced",
+            "Enormous", "Enraged", "Enthusiastic", "Entire", "Envious", "Epic", "Equal",
+            "Erect", "Erratic", "Essential", "Eternal", "Even", "Evergreen", "Evil", "Exact",
+            "Excellent", "Excited", "Exclusive", "Exotic", "Expert", "Explicit", "Exposed",
+            "Express", "Exquisite", "Extended", "External", "Extra", "Extreme", "Exuberant",
+            "Fabled", "Fabulous", "Facial", "Faint", "Fair", "Faithful", "Fake", "Fallen",
+            "Familiar", "Famous", "Fancy", "Fantastic", "Far", "Fascinated", "Fast", "Fatal",
+            "Faulty", "Fearless", "Feisty", "Feral", "Festive", "Fierce", "Fiery", "Filthy",
+            "Final", "Financial", "Fine", "Firm", "First", "Fit", "Fixed", "Flaky", "Flamboyant",
+            "Flare", "Flashy", "Flat", "Flawless", "Fleet", "Fleshy", "Flexible", "Flimsy",
+            "Flippant", "Floppy", "Floral", "Fluffy", "Fluid", "Flustered", "Focused", "Foggy",
+            "Fond", "Foolish", "Forbidden", "Forceful", "Foregoing", "Forgetful", "Forgiven"
+        ];
+        const nouns = [
+            // Animals
+            "Phoenix", "Tiger", "Eagle", "Wolf", "Dragon", "Knight", "Panda", "Fox", "Falcon", "Bear",
+            "Lion", "Panther", "Leopard", "Cheetah", "Jaguar", "Hyena", "Coyote", "Jackal", "Dingo",
+            "Hawk", "Owl", "Raven", "Crow", "Hawk", "Falcon", "Vulture", "Condor", "Eagle",
+            "Shark", "Dolphin", "Whale", "Orca", "Octopus", "Squid", "Crab", "Lobster",
+            "Python", "Cobra", "Viper", "Rattler", "Boa", "Anaconda", "Lizard", "Gecko",
+
+            // Mythical
+            "Griffin", "Pegasus", "Unicorn", "Cerberus", "Hydra", "Chimera", "Sphinx", "Minotaur",
+            "Centaur", "Gorgon", "Harpy", "Manticore", "Behemoth", "Leviathan", "Kraken", "Wyvern",
+            "Basilisk", "Phoenix", "Thunderbird", "Dragon", "Wyrm", "Drake", "Lindworm",
+
+            // Warriors & Classes
+            "Warrior", "Mage", "Wizard", "Sorcerer", "Warlock", "Priest", "Paladin", "Rogue",
+            "Assassin", "Ranger", "Druid", "Necromancer", "Summoner", "Berserker", "Guardian",
+            "Defender", "Crusader", "Templar", "Samurai", "Ninja", "Ronin", "Shogun",
+
+            // Fantasy
+            "Wraith", "Specter", "Phantom", "Ghost", "Spirit", "Demon", "Devil", "Angel", "Valkyrie",
+            "Fairy", "Elf", "Dwarf", "Giant", "Orc", "Goblin", "Troll", "Ogre", "Golem",
+
+            // Elements
+            "Storm", "Thunder", "Lightning", "Blizzard", "Hurricane", "Tornado", "Cyclone",
+            "Earthquake", "Volcano", "Tsunami", "Flood", "Wildfire", "Avalanche",
+            "Fire", "Water", "Earth", "Air", "Wind", "Ice", "Frost", "Flame", "Ember", "Spark",
+            "Crystal", "Gem", "Diamond", "Ruby", "Sapphire", "Emerald", "Topaz", "Amethyst",
+
+            // Space & Cosmos
+            "Star", "Moon", "Sun", "Comet", "Meteor", "Planet", "Galaxy", "Nebula", "Blackhole",
+            "Constellation", "Asteroid", "Orbit", "Eclipse", "Supernova", "Quasar", "Pulsar",
+
+            // Nature
+            "Forest", "Mountain", "River", "Ocean", "Desert", "Jungle", "Arctic", "Tundra",
+            "Valley", "Canyon", "Cave", "Cliff", "Peak", "Summit", "Glacier", "Waterfall",
+            "Volcano", "Island", "Peninsula", "Archipelago", "Oasis", "Prairie", "Savanna",
+
+            // Tech & Modern
+            "Cyber", "Bot", "AI", "Android", "Cyborg", "Hacker", "Coder", "Programmer", "Developer",
+            "Engineer", "Scientist", "Researcher", "Inventor", "Creator", "Builder", "Maker",
+
+            // Abstract
+            "Shadow", "Light", "Darkness", "Hope", "Fear", "Courage", "Wisdom", "Strength", "Power",
+            "Speed", "Agility", "Precision", "Accuracy", "Stealth", "Magic", "Mystery", "Secret",
+
+            // Jobs & Roles
+            "Guard", "Sentinel", "Watchman", "Protector", "Savior", "Hero", "Champion", "Legend",
+            "Master", "Expert", "Pro", "Veteran", "Ace", "Star", "Rockstar", "Ninja", "Guru",
+
+            // More
+            "Avenger", "Vindicator", "Executioner", "Slayer", "Hunter", "Tracker", "Scout",
+            "Pathfinder", "Explorer", "Adventurer", "Pioneer", "Voyager", "Traveler", "Wanderer",
+            "Nomad", "Drifter", "Outcast", "Recluse", "Hermit", "LoneWolf", "Maverick",
+            "Rebel", "Outlaw", "Renegade", "Rouge", "Vagabond", "Rover", "Wayfarer",
+
+            // Weapons
+            "Blade", "Sword", "Dagger", "Spear", "Lance", "Axe", "Hammer", "Mace", "Flail",
+            "Bow", "Arrow", "Crossbow", "Shield", "Armor", "Helm", "Gauntlet", "Greaves",
+
+            // Birds
+            "Hawk", "Falcon", "Eagle", "Owl", "Raven", "Crow", "Magpie", "Jay", "Hawk",
+            "Vulture", "Condor", "Kestrel", "Merlin", "Peregrine", "Osprey", "Kite",
+
+            // Big Cats
+            "Lion", "Tiger", "Leopard", "Jaguar", "Panther", "Cheetah", "Cougar", "Lynx", "Bobcat",
+
+            // Canines
+            "Wolf", "Fox", "Coyote", "Jackal", "Dingo", "Hound", "Mastiff", "Husky",
+
+            // Dragons
+            "Drake", "Wyrm", "Wyvern", "Dragon", "Lindworm", "Amphiptere", "Knucker",
+
+            // Mechanical
+            "Mech", "Robot", "Android", "Cyborg", "Automaton", "Golem", "Construct", "Drone",
+
+            // Elementals
+            "Salamander", "Undine", "Sylph", "Gnome", "Ifrit", "Djinn", "Marid",
+
+            // Undead
+            "Zombie", "Skeleton", "Ghoul", "Revenant", "Lich", "Mummy", "Vampire",
+
+            // Aquatic
+            "Kraken", "Leviathan", "Serpent", "SeaMonster", "Hydra", "DragonTurtle"
+        ];
         const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
         const noun = nouns[Math.floor(Math.random() * nouns.length)];
         return `${adj} ${noun}`;
@@ -534,27 +682,49 @@ export default function RoomPage() {
     // ============================================================
 
     const approveUser = useCallback(async (targetId) => {
-        wsRef.current.send(
-            JSON.stringify({
-                type: "approve-user",
-                targetId,
-            })
-        );
+        // Optimistic update - hapus dari pending dulu
         setPendingUsers((prev) => prev.filter((u) => u.id !== targetId));
+
+        // Kirim approve ke backend
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(
+                JSON.stringify({
+                    type: "approve-user",
+                    targetId,
+                })
+            );
+        }
+
         await connectToPeer(targetId);
         log(`Approved user to join`);
     }, [connectToPeer, log]);
 
     const rejectUser = useCallback((targetId) => {
-        wsRef.current.send(
-            JSON.stringify({
-                type: "reject-user",
-                targetId,
-            })
-        );
-        setPendingUsers((prev) => prev.filter((u) => u.id !== targetId));
+        console.log("Rejecting user:", targetId);
+        console.log("Current pending before reject:", pendingUsers);
+
+        // OPTIMISTIC UPDATE - Langsung hapus dari UI
+        setPendingUsers((prev) => {
+            const newPending = prev.filter((u) => u.id !== targetId);
+            console.log("Optimistic update - new pending:", newPending);
+            return newPending;
+        });
+
+        // Kirim ke backend
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(
+                JSON.stringify({
+                    type: "reject-user",
+                    targetId,
+                })
+            );
+            console.log("Reject message sent to backend");
+        } else {
+            console.error("WebSocket not ready");
+        }
+
         log(`Rejected user`);
-    }, [log]);
+    }, [pendingUsers, log]);
 
     const toggleTarget = useCallback((id) => {
         // Client tidak bisa memilih target, hanya kirim ke host
@@ -584,6 +754,26 @@ export default function RoomPage() {
         navigator.clipboard.writeText(roomUrl);
         log("Room URL copied to clipboard!");
     }, [roomUrl, log]);
+
+    const refreshPendingUsers = useCallback(() => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            console.log("Manual refresh pending users");
+            wsRef.current.send(JSON.stringify({
+                type: "get-pending-users",
+                roomId,
+            }));
+        }
+    }, [roomId]);
+
+    // useEffect(() => {
+    //     if (!isHost) return;
+
+    //     const interval = setInterval(() => {
+    //         refreshPendingUsers();
+    //     }, 5000);
+
+    //     return () => clearInterval(interval);
+    // }, [isHost, refreshPendingUsers]);
 
     // ============================================================
     // WEBSOCKET SETUP
@@ -624,7 +814,7 @@ export default function RoomPage() {
             return;
         }
 
-        console.log("Connecting to WebSocket:", wsUrl);
+        console.log("Connecting to WebSocket...");
 
         let ws = null;
         let reconnectTimeout = null;
@@ -663,37 +853,50 @@ export default function RoomPage() {
                             case "joined-as-host":
                                 setMyId(data.id);
                                 setIsHost(true);
+                                setIsApproved(true);
+                                setApprovalStatus("approved");
+                                setStatus("Connected as Host");
                                 log("You are the host of this room");
                                 break;
 
                             case "approved":
                                 setMyId(data.id);
+                                setIsApproved(true);
+                                setApprovalStatus("approved");
+                                setStatus("Connected & Approved");
                                 log("You have been approved to join the room");
                                 break;
 
-                            case "join-request":
-                                setPendingUsers((prev) => [
-                                    ...prev,
-                                    { id: data.id, name: data.name },
-                                ]);
-                                log(`${data.name} wants to join`);
+                            case "pending-users-update":
+                                // Only update if there's actual change
+                                setPendingUsers((prev) => {
+                                    const newPending = data.pending || [];
+                                    if (JSON.stringify(prev) === JSON.stringify(newPending)) return prev;
+                                    return newPending;
+                                });
                                 break;
 
-                            // Tambahkan logging untuk debug
-                            case "room-users":
-                                console.log("Received users:", data.users);
-                                console.log("User IDs:", data.users.map(u => u.id));
+                            case "join-request":
+                                setPendingUsers((prev) => {
+                                    const exists = prev.some(u => u.id === data.id);
+                                    if (exists) return prev;
+                                    const newPending = [...prev, { id: data.id, name: data.name }];
+                                    log(`${data.name} wants to join`);
+                                    return newPending;
+                                });
+                                break;
 
-                                // Check for duplicates
-                                const ids = data.users.map(u => u.id);
-                                const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
-                                if (duplicates.length > 0) {
-                                    console.warn("Duplicate user IDs found:", duplicates);
+                            case "room-users":
+                                // Filter duplicate users efficiently
+                                const uniqueUsers = Array.from(
+                                    new Map(data.users.map(user => [user.id, user])).values()
+                                );
+
+                                if (uniqueUsers.length !== data.users.length) {
+                                    console.warn("Duplicate users filtered:",
+                                        data.users.length - uniqueUsers.length);
                                 }
 
-                                const uniqueUsers = data.users.filter((user, index, self) =>
-                                    index === self.findIndex((u) => u.id === user.id)
-                                );
                                 setRoomUsers(uniqueUsers);
                                 break;
 
@@ -702,48 +905,103 @@ export default function RoomPage() {
                                 break;
 
                             case "room-closed":
+                                // Show alert with room info
                                 alert("Room has been closed by the host");
                                 setStatus("Disconnected");
-                                // Clean up peers
-                                Object.values(peersRef.current).forEach((peer) => {
-                                    try {
-                                        peer.close();
-                                    } catch (e) {
-                                        console.error("Error closing peer:", e);
-                                    }
+
+                                // Clean up all peers
+                                const cleanupPromises = Object.values(peersRef.current).map((peer) => {
+                                    return new Promise((resolve) => {
+                                        try {
+                                            if (peer.signalingState !== "closed") {
+                                                peer.close();
+                                            }
+                                        } catch (e) {
+                                            console.error("Error closing peer:", e);
+                                        }
+                                        resolve();
+                                    });
                                 });
+
+                                await Promise.all(cleanupPromises);
                                 peersRef.current = {};
                                 channelsRef.current = {};
+
+                                // Redirect to home after 1 second
+                                setTimeout(() => {
+                                    window.location.href = "/";
+                                }, 1000);
                                 break;
 
                             case "rejected":
-                                alert(data.message || "Your join request was rejected");
-                                setStatus("Rejected");
+                                console.log("Join request rejected by host");
+
+                                // Clean up peers with proper error handling
+                                for (const peer of Object.values(peersRef.current)) {
+                                    try {
+                                        if (peer.signalingState !== "closed") {
+                                            peer.close();
+                                        }
+                                    } catch (e) {
+                                        console.error("Error closing peer:", e);
+                                    }
+                                }
+                                peersRef.current = {};
+                                channelsRef.current = {};
+
+                                // Close WebSocket connection
+                                if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                    wsRef.current.close(1000, "Rejected by host");
+                                }
+
+                                // Store rejection message for home page
+                                const rejectMessage = data.message || "Your join request was rejected by the host";
+                                sessionStorage.setItem("rejectMessage", rejectMessage);
+                                sessionStorage.setItem("rejectTimestamp", Date.now().toString());
+
+                                // Redirect to home
+                                window.location.href = "/";
                                 break;
 
                             case "error":
                                 console.error("Server error:", data.message);
                                 log(`Error: ${data.message}`);
+
+                                // Show user-friendly error message
+                                if (data.message.includes("full") || data.message.includes("limit")) {
+                                    alert(data.message);
+                                    setTimeout(() => {
+                                        window.location.href = "/";
+                                    }, 2000);
+                                }
                                 break;
 
                             case "user-connected":
                                 setRoomUsers(prev => prev.map(user =>
                                     user.id === data.userId
-                                        ? { ...user, connected: true }
+                                        ? { ...user, connected: true, lastSeen: Date.now() }
                                         : user
                                 ));
+                                log(`User ${data.userName || data.userId} connected`);
                                 break;
 
                             case "user-disconnected":
                                 setRoomUsers(prev => prev.map(user =>
                                     user.id === data.userId
-                                        ? { ...user, connected: false }
+                                        ? { ...user, connected: false, lastSeen: Date.now() }
                                         : user
                                 ));
+                                log(`User ${data.userName || data.userId} disconnected`);
                                 break;
 
                             default:
                                 console.log("Unknown message type:", data.type);
+
+                                // Optional: Log unknown types for debugging in development only
+                                if (process.env.NODE_ENV === "development") {
+                                    console.warn("Unhandled message type:", data.type, data);
+                                }
+                                break;
                         }
                     } catch (error) {
                         console.error("Error parsing WebSocket message:", error);
@@ -837,6 +1095,10 @@ export default function RoomPage() {
         };
     }, [roomId, handleSignal, log, deviceName, isHydrated]);
 
+    useEffect(() => {
+        console.log("Pending users updated:", pendingUsers);
+    }, [pendingUsers]);
+
     if (!isHydrated) {
         return (
             <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 flex items-center justify-center">
@@ -901,8 +1163,8 @@ export default function RoomPage() {
                                         <p className="text-[17px] font-medium text-gray-900 dark:text-white truncate">
                                             {deviceName}
                                         </p>
-                                        <p className="text-[13px] font-mono text-gray-400 dark:text-zinc-500 mt-0.5">
-                                            room / {roomId?.slice(0, 8)}...
+                                        <p className="text-[13px] font-mono text-gray-400 dark:text-zinc-500 mt-0.5 truncate">
+                                            room / {roomId}
                                         </p>
                                     </div>
 
@@ -913,13 +1175,30 @@ export default function RoomPage() {
 
                                 {/* Status Indicator */}
                                 <div className="mt-3 flex items-center gap-2">
-                                    <div className={`w-2 h-2 rounded-full ${status === "Connected"
+                                    <div className={`w-2 h-2 rounded-full ${status === "Connected" || status === "Connected & Approved"
                                         ? "bg-green-500"
-                                        : status === "Disconnected"
-                                            ? "bg-red-500"
-                                            : "bg-yellow-500"
+                                        : status === "Waiting for Approval"
+                                            ? "bg-yellow-500 animate-pulse"
+                                            : status === "Rejected by Host" || status === "Disconnected"
+                                                ? "bg-red-500"
+                                                : "bg-yellow-500"
                                         }`} />
-                                    <span className="text-xs text-gray-500">{status}</span>
+
+                                    <div className="flex flex-col">
+                                        <span className="text-xs text-gray-500">
+                                            {status === "Connected" && !isApproved && "Waiting for approval..."}
+                                            {status === "Connected & Approved" && "Connected"}
+                                            {status === "Rejected by Host" && "Rejected"}
+                                            {status === "Disconnected" && "Disconnected"}
+                                            {status === "Connection Error" && "Connection Error"}
+                                            {status === "Connected as Host" && "Host Mode"}
+                                        </span>
+                                        {/* {!isHost && !isApproved && status === "Connected" && (
+                                            <span className="text-[10px] text-yellow-600 dark:text-yellow-400 mt-0.5">
+                                                Waiting for host to approve...
+                                            </span>
+                                        )} */}
+                                    </div>
                                 </div>
                             </div>
 
@@ -1012,10 +1291,16 @@ export default function RoomPage() {
                         {/* JOIN REQUEST */}
                         {isHost && pendingUsers.length > 0 && (
                             <div className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-2xl overflow-hidden">
-                                <div className="px-5 pt-5 pb-3">
+                                <div className="flex justify-between items-center px-5 pt-5 pb-3">
                                     <p className="text-[11px] font-medium tracking-widest uppercase text-gray-400 dark:text-zinc-500">
                                         Join requests ({pendingUsers.length})
                                     </p>
+                                    <button
+                                        onClick={refreshPendingUsers}
+                                        className="text-xs text-gray-400 hover:text-gray-600"
+                                    >
+                                        Refresh
+                                    </button>
                                 </div>
 
                                 {pendingUsers.map((user) => (
@@ -1121,7 +1406,6 @@ export default function RoomPage() {
                                         </div>
                                     )}
                                 </div>
-
                                 {/* DROP ZONE */}
                                 <div
                                     ref={dropZoneRef}
@@ -1132,57 +1416,59 @@ export default function RoomPage() {
                                     onDrop={handleDrop}
                                     className="px-5 pb-5"
                                 >
-                                    <div
-                                        className={`
+                                    {availableTargets.length !== 0 && (
+                                        <div
+                                            className={`
                                             border-[1.5px] border-dashed rounded-2xl
                                             py-12 flex flex-col items-center gap-2
                                             cursor-pointer transition-all duration-200
                                             ${isDragging
-                                                ? 'border-black dark:border-white bg-gray-50 dark:bg-zinc-800 scale-[1.02]'
-                                                : 'border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800'
-                                            }
+                                                    ? 'border-black dark:border-white bg-gray-50 dark:bg-zinc-800 scale-[1.02]'
+                                                    : 'border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800'
+                                                }
                                         `}
-                                    >
-                                        <svg
-                                            className={`w-8 h-8 transition-all ${isDragging
-                                                ? 'text-black dark:text-white'
-                                                : 'text-gray-300 dark:text-zinc-600'
-                                                }`}
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                            strokeWidth={1.5}
                                         >
-                                            {isDragging ? (
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"
-                                                />
-                                            ) : (
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
-                                                />
-                                            )}
-                                        </svg>
-
-                                        <p className="text-[15px] font-medium text-gray-700 dark:text-zinc-300">
-                                            {isDragging ? "Drop files here" : "Drop files here"}
-                                        </p>
-
-                                        <p className="text-[13px] text-gray-400">
-                                            {isDragging ? "Release to upload" : "or click to browse"}
-                                        </p>
-
-                                        <button className="mt-2 flex items-center gap-1.5 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-[13px] font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                            <svg
+                                                className={`w-8 h-8 transition-all ${isDragging
+                                                    ? 'text-black dark:text-white'
+                                                    : 'text-gray-300 dark:text-zinc-600'
+                                                    }`}
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                strokeWidth={1.5}
+                                            >
+                                                {isDragging ? (
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"
+                                                    />
+                                                ) : (
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                                                    />
+                                                )}
                                             </svg>
-                                            Choose files
-                                        </button>
-                                    </div>
+
+                                            <p className="text-[15px] font-medium text-gray-700 dark:text-zinc-300">
+                                                {isDragging ? "Drop files here" : "Drop files here"}
+                                            </p>
+
+                                            <p className="text-[13px] text-gray-400">
+                                                {isDragging ? "Release to upload" : "or click to browse"}
+                                            </p>
+
+                                            <button className="mt-2 flex items-center gap-1.5 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-[13px] font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                                </svg>
+                                                Choose files
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <input
@@ -1193,6 +1479,7 @@ export default function RoomPage() {
                                     onChange={handleFileSelect}
                                 />
                             </div>
+
                         )}
 
                         {/* TRANSFERS */}
