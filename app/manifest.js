@@ -11,11 +11,33 @@ export default function manifest() {
     orientation: "portrait",
     scope: "/",
     categories: ["productivity", "utilities", "file-transfer"],
+    share_target: {
+      action: "/share/external",
+      method: "POST",
+      enctype: "multipart/form-data",
+      params: {
+        title: "title",
+        text: "text",
+        url: "url",
+        files: [
+          {
+            name: "files",
+            accept: ["*/*"],
+          },
+        ],
+      },
+    },
     icons: [
       {
-        src: "/favicon.ico",
-        sizes: "64x64 32x32 24x24 16x16",
-        type: "image/x-icon",
+        src: "/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any maskable",
       },
     ],
     screenshots: [
@@ -36,16 +58,18 @@ export default function manifest() {
     ],
     shortcuts: [
       {
-        name: "Create Room",
-        short_name: "New Room",
-        description: "Create a new file sharing room",
-        url: "/",
-        icons: [
-          {
-            src: "/favicon.ico",
-            sizes: "96x96",
-          },
-        ],
+        name: "Quick Share",
+        short_name: "Share",
+        description: "Quickly share files",
+        url: "/?action=share",
+        icons: [{ src: "/share-icon.png", sizes: "96x96" }],
+      },
+      {
+        name: "Scan QR",
+        short_name: "Scan",
+        description: "Scan QR to join room",
+        url: "/scan",
+        icons: [{ src: "/join-icon.png", sizes: "96x96" }],
       },
     ],
     related_applications: [],

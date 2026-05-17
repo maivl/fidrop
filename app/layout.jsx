@@ -1,26 +1,27 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from 'next/font/local';
-import "../globals.css";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import "./globals.css";
 
 const sfPro = localFont({
     src: [
         {
-            path: '../fonts/SFProDisplay-Regular.ttf',
+            path: './fonts/SFProDisplay-Regular.ttf',
             weight: '400',
             style: 'normal',
         },
         {
-            path: '../fonts/SFProDisplay-RegularItalic.ttf',
+            path: './fonts/SFProDisplay-RegularItalic.ttf',
             weight: '400',
             style: 'italic',
         },
         {
-            path: '../fonts/SFProDisplay-Bold.ttf',
+            path: './fonts/SFProDisplay-Bold.ttf',
             weight: '700',
             style: 'normal',
         },
         {
-            path: '../fonts/SFProDisplay-BoldItalic.ttf',
+            path: './fonts/SFProDisplay-BoldItalic.ttf',
             weight: '700',
             style: 'italic',
         },
@@ -65,6 +66,7 @@ export default function RootLayout({ children }) {
                 className={`${sfPro.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
                 suppressHydrationWarning
             >
+                <ServiceWorkerRegistration />
                 {children}
             </body>
         </html>

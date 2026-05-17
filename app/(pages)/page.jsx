@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 
 export default function HomePage() {
     const router = useRouter();
+    const generateRoomId = () => {
+        return Math.random().toString(36).substring(2, 10);
+    };
 
     useEffect(() => {
         const rejectMessage = sessionStorage.getItem("rejectMessage");
@@ -14,7 +17,6 @@ export default function HomePage() {
             const timestamp = parseInt(rejectTimestamp);
             const now = Date.now();
 
-            // Only show if less than 5 seconds old (避免显示旧消息)
             if (now - timestamp < 5000) {
                 // Show toast or alert
                 const toast = document.createElement("div");
@@ -30,7 +32,7 @@ export default function HomePage() {
             sessionStorage.removeItem("rejectMessage");
             sessionStorage.removeItem("rejectTimestamp");
         }
-        const roomId = crypto.randomUUID();
+        const roomId = generateRoomId();
 
         router.replace(`/room/${roomId}`);
     }, [router]);

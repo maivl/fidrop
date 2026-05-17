@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { rtcConfig } from "@/libs/webrtc";
 import Link from "next/link";
@@ -16,6 +16,7 @@ const formatBytes = (bytes) => {
 
 export default function RoomPage() {
     const params = useParams();
+    const router = useRouter();
     const roomId = params.roomId;
     const roomUrl = typeof window !== "undefined" ? window.location.href : "";
 
@@ -42,10 +43,7 @@ export default function RoomPage() {
     const fileInputRef = useRef(null);
     const dropZoneRef = useRef(null);
     const sendingFilesRef = useRef(new Set());
-
-    const clientUsers = useMemo(() => {
-        return roomUsers.filter((u) => u.role === "client" && u.id !== myId);
-    }, [roomUsers, myId]);
+    const shouldReconnect = useRef(true);
 
     const connectedClients = useMemo(() => {
         return roomUsers.filter((u) => u.role === "client").length;
@@ -252,20 +250,6 @@ export default function RoomPage() {
             `[${new Date().toLocaleTimeString()}] ${msg}`,
             ...prev.slice(0, 99),
         ]);
-    }, []);
-
-    const setUniqueRoomUsers = useCallback((users) => {
-        const unique = [];
-        const seen = new Set();
-
-        for (const user of users) {
-            if (!seen.has(user.id)) {
-                seen.add(user.id);
-                unique.push(user);
-            }
-        }
-
-        setRoomUsers(unique);
     }, []);
 
     // ============================================================
@@ -625,13 +609,37 @@ export default function RoomPage() {
                 log(`Channel not ready for ${targetId}, skipping...`);
                 continue;
             }
+
+            // Initialize a per-channel transfer queue
+            if (!channel._queue) channel._queue = [];
+
+            // Add files to the queue
             for (const file of files) {
-                sendTasks.push(sendSingleFile(targetId, file));
+                channel._queue.push(file);
             }
+
+            // Process the queue sequentially
+            const processQueue = async () => {
+                if (channel._isSending) return;
+                channel._isSending = true;
+
+                while (channel._queue.length > 0) {
+                    const fileToSend = channel._queue.shift();
+                    try {
+                        await sendSingleFile(targetId, fileToSend);
+                    } catch (err) {
+                        console.error(`Error sending to ${targetId}:`, err);
+                    }
+                }
+
+                channel._isSending = false;
+            };
+
+            sendTasks.push(processQueue());
         }
 
         await Promise.all(sendTasks);
-        log("All files sent!");
+        log("All files queued/sent!");
     }, [selectedTargets, availableTargets, sendSingleFile, log, isHost, roomUsers]);
 
     // ============================================================
@@ -830,15 +838,15 @@ export default function RoomPage() {
                 ws.onopen = () => {
                     console.log("WebSocket connected successfully");
                     setStatus("Connected");
-                    reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+                    reconnectAttempts = 0;
 
-                    // Send join room message
                     if (ws.readyState === WebSocket.OPEN) {
                         ws.send(
                             JSON.stringify({
                                 type: "join-room",
                                 roomId,
                                 name: deviceName,
+                                mode: "full", // ✅ tambahkan mode
                             })
                         );
                     }
@@ -927,9 +935,9 @@ export default function RoomPage() {
                                 peersRef.current = {};
                                 channelsRef.current = {};
 
-                                // Redirect to home after 1 second
+                                // ✅ Redirect to home after 1 second (lebih baik pakai router.push)
                                 setTimeout(() => {
-                                    window.location.href = "/";
+                                    router.push("/");
                                 }, 1000);
                                 break;
 
@@ -959,19 +967,19 @@ export default function RoomPage() {
                                 sessionStorage.setItem("rejectMessage", rejectMessage);
                                 sessionStorage.setItem("rejectTimestamp", Date.now().toString());
 
-                                // Redirect to home
-                                window.location.href = "/";
+                                // ✅ Redirect to home
+                                router.push("/");
                                 break;
 
                             case "error":
                                 console.error("Server error:", data.message);
                                 log(`Error: ${data.message}`);
 
-                                // Show user-friendly error message
-                                if (data.message.includes("full") || data.message.includes("limit")) {
+                                // ✅ Show user-friendly error message
+                                if (data.message.includes("full") || data.message.includes("limit") || data.message.includes("mode")) {
                                     alert(data.message);
                                     setTimeout(() => {
-                                        window.location.href = "/";
+                                        router.push("/");
                                     }, 2000);
                                 }
                                 break;
@@ -994,6 +1002,30 @@ export default function RoomPage() {
                                 log(`User ${data.userName || data.userId} disconnected`);
                                 break;
 
+                            case "room-mode-mismatch": {
+                                shouldReconnect.current = false;
+                                const expectedMode = data.expectedMode;
+                                const roomId = data.roomId;
+
+                                log(`Room mode mismatch. Expected: ${expectedMode}`, "warn");
+
+                                reconnectAttempts = maxReconnectAttempts;
+                                isMounted.current = false;
+
+                                if (ws) {
+                                    ws.onclose = null;
+                                    ws.close();
+                                }
+                                if (expectedMode === "share") {
+                                    router.push(`/receive/${roomId}`);
+                                } else if (expectedMode === "receive") {
+                                    router.push(`/receive/${roomId}`);
+                                } else {
+                                    router.push("/");
+                                }
+                                return;
+                            }
+
                             default:
                                 console.log("Unknown message type:", data.type);
 
@@ -1013,20 +1045,19 @@ export default function RoomPage() {
 
                     if (!isMounted.current) return;
 
+                    // ✅ Jangan reconnect jika sudah mismatch
+                    if (!shouldReconnect.current) return;
+
                     setStatus("Disconnected");
                     log("Disconnected from server");
 
-                    // Attempt to reconnect if not closed intentionally and room still exists
                     if (reconnectAttempts < maxReconnectAttempts && event.code !== 1000) {
                         reconnectTimeout = setTimeout(() => {
                             reconnectAttempts++;
                             console.log(`Reconnecting... Attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
                             log(`Reconnecting... (${reconnectAttempts}/${maxReconnectAttempts})`);
                             connectWebSocket();
-                        }, 3000 * reconnectAttempts); // Exponential backoff: 3s, 6s, 9s, etc.
-                    } else if (reconnectAttempts >= maxReconnectAttempts) {
-                        log("Max reconnection attempts reached. Please refresh the page.");
-                        setStatus("Connection Failed");
+                        }, 3000 * reconnectAttempts);
                     }
                 };
 
@@ -1053,6 +1084,7 @@ export default function RoomPage() {
         // Cleanup function
         return () => {
             isMounted.current = false;
+            shouldReconnect.current = false;
 
             // Clear reconnect timeout
             if (reconnectTimeout) {
@@ -1407,16 +1439,16 @@ export default function RoomPage() {
                                     )}
                                 </div>
                                 {/* DROP ZONE */}
-                                <div
-                                    ref={dropZoneRef}
-                                    onClick={() => fileInputRef.current?.click()}
-                                    onDragEnter={handleDragEnter}
-                                    onDragLeave={handleDragLeave}
-                                    onDragOver={handleDragOver}
-                                    onDrop={handleDrop}
-                                    className="px-5 pb-5"
-                                >
-                                    {availableTargets.length !== 0 && (
+                                {availableTargets.length !== 0 && (
+                                    <div
+                                        ref={dropZoneRef}
+                                        onClick={() => fileInputRef.current?.click()}
+                                        onDragEnter={handleDragEnter}
+                                        onDragLeave={handleDragLeave}
+                                        onDragOver={handleDragOver}
+                                        onDrop={handleDrop}
+                                        className="px-5 pb-5"
+                                    >
                                         <div
                                             className={`
                                             border-[1.5px] border-dashed rounded-2xl
@@ -1468,8 +1500,8 @@ export default function RoomPage() {
                                                 Choose files
                                             </button>
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
 
                                 <input
                                     ref={fileInputRef}
@@ -1616,7 +1648,7 @@ export default function RoomPage() {
                                 )}
 
                                 {receivedFiles.map((file, idx) => (
-                                    <div key={file.id || idx} className="px-5 py-4 flex items-center gap-3">
+                                    <div key={`${file.id}-${file.name}-${idx}`} className="px-5 py-4 flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
                                             <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
