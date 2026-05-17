@@ -10,9 +10,6 @@ export default function HomePage() {
     };
 
     useEffect(() => {
-<<<<<<< Updated upstream
-        const roomId = crypto.randomUUID();
-=======
         const rejectMessage = sessionStorage.getItem("rejectMessage");
         const rejectTimestamp = sessionStorage.getItem("rejectTimestamp");
 
@@ -36,7 +33,6 @@ export default function HomePage() {
             sessionStorage.removeItem("rejectTimestamp");
         }
         const roomId = generateRoomId();
->>>>>>> Stashed changes
 
         router.replace(`/room/${roomId}`);
     }, [router]);

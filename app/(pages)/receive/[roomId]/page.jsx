@@ -70,17 +70,9 @@ export default function ReceivePage() {
 
     // Setup data channel untuk menerima file
 
-    const incomingFilesMap = useRef(new Map());
-
     const setupDataChannel = useCallback((channel, peerId) => {
         channelsRef.current[peerId] = channel;
         channel.binaryType = "arraybuffer";
-
-        // ✅ Inisialisasi Map untuk peer ini
-        if (!incomingFilesMap.current.has(peerId)) {
-            incomingFilesMap.current.set(peerId, new Map());
-        }
-        const peerFilesMap = incomingFilesMap.current.get(peerId);
 
         let keepAliveInterval;
 
@@ -98,8 +90,6 @@ export default function ReceivePage() {
         channel.onclose = () => {
             log(`Data channel disconnected from ${peerId}`);
             if (keepAliveInterval) clearInterval(keepAliveInterval);
-            // ✅ Cleanup Map untuk peer ini
-            incomingFilesMap.current.delete(peerId);
         };
 
         channel.onerror = (error) => {
@@ -112,13 +102,9 @@ export default function ReceivePage() {
                     const data = JSON.parse(event.data);
 
                     if (data.type === "file-meta") {
-                        if (receivedFileIds.has(data.fileId)) {
-                            log(`Skipping duplicate file: ${data.name}`, "warn");
-                            return;
-                        }
-
-                        // ✅ Gunakan _incomingFile pada channel (mirip di /room)
-                        channelsRef.current[peerId]._incomingFile = {
+                        // Use a property on the channel to store incoming file data
+                        // This avoids issues with closures and multiple files
+                        channel._incomingFile = {
                             name: data.name,
                             size: data.size,
                             type: data.mime,
@@ -134,7 +120,7 @@ export default function ReceivePage() {
                         setTransfers(prev => {
                             const exists = prev.some(t => t.id === data.fileId);
                             if (exists) return prev;
-                            return [...prev, {
+                            return [{
                                 id: data.fileId,
                                 name: data.name,
                                 from: peerId,
@@ -144,7 +130,7 @@ export default function ReceivePage() {
                                 done: false,
                                 size: data.size,
                                 received: 0
-                            }];
+                            }, ...prev];
                         });
                     } else if (data.type === "ping") {
                         if (channel?.readyState === "open") {
@@ -157,8 +143,8 @@ export default function ReceivePage() {
                 return;
             }
 
-            // ✅ Binary data
-            const activeFile = channelsRef.current[peerId]?._incomingFile;
+            // Binary data
+            const activeFile = channel._incomingFile;
 
             if (!activeFile) {
                 console.warn("No active file for incoming chunk");
@@ -168,36 +154,29 @@ export default function ReceivePage() {
             activeFile.buffers.push(event.data);
             activeFile.receivedSize += event.data.byteLength;
 
-            // ✅ Force set to file.size if it exceeds somehow
-            if (activeFile.receivedSize > activeFile.size) {
-                log(`Warning: Received more bytes than expected for ${activeFile.name}. Truncating...`, "warn");
-                activeFile.receivedSize = activeFile.size;
-            }
-
             const progress = Math.floor((activeFile.receivedSize / activeFile.size) * 100);
             const now = Date.now();
 
             // Throttle progress update
-            if (progress % 10 === 0 || now - activeFile.lastProgressUpdate > PROGRESS_THROTTLE_MS) {
+            if (progress % 5 === 0 || now - activeFile.lastProgressUpdate > PROGRESS_THROTTLE_MS) {
                 activeFile.lastProgressUpdate = now;
                 setTransfers(prev => prev.map(t =>
                     t.id === activeFile.fileId ? { ...t, progress, received: activeFile.receivedSize } : t
                 ));
             }
 
-            // ✅ Cek apakah file sudah lengkap
+            // Check if file is complete
             if (activeFile.receivedSize >= activeFile.size) {
-                log(`Assembling file: ${activeFile.name}`);
+                log(`✓ Received: ${activeFile.name}`);
 
                 try {
                     const blob = new Blob(activeFile.buffers, { type: activeFile.type });
                     const url = URL.createObjectURL(blob);
                     
-                    // Track URL for cleanup on unmount
                     objectUrlsRef.current.add(url);
 
                     setReceivedFiles(prev => [{
-                        id: activeFile.fileId + Date.now(), // Unique ID
+                        id: activeFile.fileId,
                         name: activeFile.name,
                         url,
                         size: activeFile.size,
@@ -205,25 +184,21 @@ export default function ReceivePage() {
                         receivedAt: new Date(),
                     }, ...prev]);
 
-                    setReceivedFileIds(prev => new Set([...prev, activeFile.fileId]));
-
                     setTransfers(prev => prev.map(t =>
                         t.id === activeFile.fileId
                             ? { ...t, done: true, progress: 100, speed: "Completed" }
                             : t
                     ));
 
-                    log(`✓ Received: ${activeFile.name}`);
-
-                    delete channelsRef.current[peerId]._incomingFile;
+                    delete channel._incomingFile;
 
                 } catch (err) {
                     log(`Error assembling file: ${err.message}`, "error");
-                    delete channelsRef.current[peerId]._incomingFile;
+                    delete channel._incomingFile;
                 }
             }
         };
-    }, [deviceName, receivedFileIds, setTransfers, setReceivedFiles, setReceivedFileIds, log]);
+    }, [deviceName, setTransfers, setReceivedFiles, log]);
 
     // Create peer connection
     const createPeer = useCallback((targetId) => {
@@ -529,20 +504,6 @@ export default function ReceivePage() {
     useEffect(() => {
         isApprovedRef.current = isApproved;
     }, [isApproved]);
-
-    useEffect(() => {
-
-        return () => {
-
-            receivedFiles.forEach(file => {
-
-                if (file.url) {
-                    URL.revokeObjectURL(file.url);
-                }
-            });
-        };
-
-    }, [receivedFiles]);
 
     if (!deviceName) {
         return (

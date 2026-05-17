@@ -253,117 +253,109 @@ export default function ShareRoomPage() {
         approvedUsersRef.current = approvedUsers;
     }, [approvedUsers]);
 
-    const sendFilesToPeer = useCallback(
-        async (peerId, filesToSend, fileDataArray) => {
-            const channel = channelsRef.current[peerId];
-            if (!channel || channel.readyState !== "open") {
-                log(`Channel not ready for ${peerId}`, "warn");
-                return false;
+    const sendSingleFile = useCallback(async (peerId, file) => {
+        const channel = channelsRef.current[peerId];
+        if (!channel || channel.readyState !== "open") return;
+
+        const fileId = `${peerId}-${file.name}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+        
+        log(`Sending ${file.name} to ${peerId}...`);
+
+        // Metadata
+        channel.send(JSON.stringify({
+            type: "file-meta",
+            name: file.name,
+            size: file.size,
+            mime: file.type,
+            fileId: fileId
+        }));
+
+        setTransfers((prev) => [
+            {
+                id: fileId,
+                name: file.name,
+                from: deviceName,
+                to: peerId,
+                progress: 0,
+                speed: "Sending...",
+                done: false,
+                size: file.size,
+                sent: 0,
+            },
+            ...prev,
+        ]);
+
+        const CHUNK_SIZE = 64 * 1024;
+        const MAX_BUFFERED = 1024 * 1024; // 1MB buffer limit
+        let offset = 0;
+        let lastProgressUpdate = 0;
+
+        while (offset < file.size) {
+            if (channel.readyState !== "open") break;
+
+            if (channel.bufferedAmount > MAX_BUFFERED) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                continue;
             }
 
-            const actualFiles = fileDataArray || fileBlobs;
-            if (!actualFiles?.length) {
-                log("No file data available", "error");
-                return false;
-            }
+            const end = Math.min(offset + CHUNK_SIZE, file.size);
+            const slice = file.slice(offset, end);
+            const buffer = await slice.arrayBuffer();
+            channel.send(buffer);
 
-            log(`Sending ${filesToSend.length} file(s) to ${peerId}`);
+            offset = end;
+            const progress = Math.floor((offset / file.size) * 100);
+            const now = Date.now();
 
-            for (let i = 0; i < filesToSend.length; i++) {
-                const fileInfo = filesToSend[i];
-                const file = actualFiles[i];
-                if (!file) continue;
-
-                // ✅ UNIQUE ID dengan timestamp + index + random
-                const fileId = `${peerId}-${fileInfo.name}-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`;
-
-                // Kirim metadata dengan index dan totalFiles
-                channel.send(JSON.stringify({
-                    type: "file-meta",
-                    name: fileInfo.name,
-                    size: fileInfo.size,
-                    mime: fileInfo.type,
-                    fileId: fileId,
-                    fileIndex: i,
-                    totalFiles: filesToSend.length,
-                    chunkSize: CHUNK_SIZE,
-                    totalChunks: Math.ceil(fileInfo.size / CHUNK_SIZE),
-                }));
-
-                setTransfers((prev) => [
-                    {
-                        id: fileId,
-                        name: fileInfo.name,
-                        from: deviceName,
-                        to: peerId,
-                        progress: 0,
-                        speed: "Sending...",
-                        done: false,
-                        size: fileInfo.size,
-                        sent: 0,
-                    },
-                    ...prev,
-                ]);
-
-                // ✅ Jeda 500ms agar receiver siap
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                let offset = 0;
-                while (offset < fileInfo.size) {
-                    if (!channel || channel.readyState !== "open") {
-                        log(`Channel closed during send`, "error");
-                        return false;
-                    }
-
-                    if (channel.bufferedAmount > MAX_BUFFERED) {
-                        await new Promise((resolve) => {
-                            const handler = () => {
-                                channel.removeEventListener("bufferedamountlow", handler);
-                                resolve();
-                            };
-                            channel.addEventListener("bufferedamountlow", handler);
-                        });
-                    }
-
-                    const end = Math.min(offset + CHUNK_SIZE, fileInfo.size);
-                    const chunk = file.slice(offset, end);
-                    const buffer = await chunk.arrayBuffer();
-                    channel.send(buffer);
-
-                    offset = end;
-                    const progress = Math.floor((offset / fileInfo.size) * 100);
-                    const now = Date.now();
-                    const lastUpdate = sendingProgress.current[fileId]?.lastUpdate || 0;
-
-                    if (progress % 10 === 0 || now - lastUpdate > PROGRESS_THROTTLE_MS) {
-                        sendingProgress.current[fileId] = { lastUpdate: now, sent: offset };
-                        setTransfers((prev) =>
-                            prev.map((t) =>
-                                t.id === fileId ? { ...t, progress, sent: offset } : t
-                            )
-                        );
-                    }
-                }
-                
-                log(`✓ ${fileInfo.name} sent to ${peerId}`);
+            if (progress !== lastProgressUpdate && (progress % 5 === 0 || now - lastProgressUpdate > 500)) {
+                lastProgressUpdate = progress;
                 setTransfers((prev) =>
                     prev.map((t) =>
-                        t.id === fileId
-                            ? { ...t, done: true, progress: 100, speed: "Completed" }
-                            : t
+                        t.id === fileId ? { ...t, progress, sent: offset } : t
                     )
                 );
+            }
+        }
 
-                // ✅ Jeda 1 detik antar file untuk memastikan receiver siap
-                if (i < filesToSend.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+        setTransfers((prev) =>
+            prev.map((t) =>
+                t.id === fileId ? { ...t, progress: 100, done: true, speed: "Completed" } : t
+            )
+        );
+        log(`✓ ${file.name} sent to ${peerId}`);
+    }, [deviceName, log]);
+
+    const sendFilesToPeer = useCallback(
+        async (peerId, filesToSend) => {
+            const channel = channelsRef.current[peerId];
+            if (!channel || channel.readyState !== "open") return;
+
+            // Use a per-channel queue
+            if (!channel._queue) channel._queue = [];
+            for (const file of filesToSend) {
+                channel._queue.push(file);
+            }
+
+            if (channel._isSending) return;
+            channel._isSending = true;
+
+            log(`Starting transfer of ${channel._queue.length} files to ${peerId}`);
+
+            while (channel._queue.length > 0) {
+                const nextFile = channel._queue.shift();
+                try {
+                    await sendSingleFile(peerId, nextFile);
+                    // Small delay between files to let receiver catch up
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } catch (err) {
+                    console.error(`Error sending file to ${peerId}:`, err);
                 }
             }
 
-            log(`All ${filesToSend.length} files sent to ${peerId}`);
-            return true;
+            channel._isSending = false;
+            log(`All files sent to ${peerId}`);
         },
-        [fileBlobs, deviceName, log]
+        [sendSingleFile, log]
     );
     const setupDataChannel = useCallback(
         (channel, peerId) => {
@@ -381,12 +373,11 @@ export default function ShareRoomPage() {
                 }, 15000);
                 if (
                     !sendingPeersRef.current.has(peerId) &&
-                    files.length > 0 &&
                     fileBlobs.length > 0
                 ) {
                     sendingPeersRef.current.add(peerId);
-                    log(`Auto-sending ${files.length} file(s) to ${peerId}`);
-                    sendFilesToPeer(peerId, files, fileBlobs);
+                    log(`Auto-sending ${fileBlobs.length} file(s) to ${peerId}`);
+                    sendFilesToPeer(peerId, fileBlobs);
                 }
             };
             channel.onclose = () => {
