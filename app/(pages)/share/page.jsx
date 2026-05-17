@@ -27,38 +27,6 @@ export default function SharePage() {
         });
     }, []);
 
-    // Cek apakah ada file dari share target
-    useEffect(() => {
-        const shared = searchParams.get("shared");
-        const sessionId = searchParams.get("session");
-
-        if (shared === "true" && sessionId) {
-            loadSharedFiles(sessionId);
-        }
-    }, [searchParams]);
-
-    const loadSharedFiles = async (sessionId) => {
-        setIsCreating(true);
-        try {
-            const response = await fetch(`/api/share/retrieve?session=${sessionId}`);
-            const files = await response.json();
-
-            if (files && files.length > 0) {
-                // Convert base64 back to File objects
-                const loadedFiles = await Promise.all(files.map(async (file) => {
-                    const response = await fetch(file.data);
-                    const blob = await response.blob();
-                    return new File([blob], file.name, { type: file.type });
-                }));
-                setSelectedFiles(loadedFiles);
-            }
-        } catch (err) {
-            setError("Failed to load shared files");
-        } finally {
-            setIsCreating(false);
-        }
-    };
-
     const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
     const handleFileSelect = (e) => {

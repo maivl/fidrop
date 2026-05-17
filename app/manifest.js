@@ -12,7 +12,7 @@ export default function manifest() {
     scope: "/",
     categories: ["productivity", "utilities", "file-transfer"],
     share_target: {
-      action: "/",
+      action: "/share/external",
       method: "POST",
       enctype: "multipart/form-data",
       params: {
@@ -22,16 +22,22 @@ export default function manifest() {
         files: [
           {
             name: "files",
-            accept: ["image/*", "video/*", "audio/*", "application/*", "*/*"],
+            accept: ["*/*"],
           },
         ],
       },
     },
     icons: [
       {
-        src: "/favicon.ico",
-        sizes: "64x64 32x32 24x24 16x16",
-        type: "image/x-icon",
+        src: "/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any maskable",
       },
     ],
     screenshots: [
@@ -59,10 +65,10 @@ export default function manifest() {
         icons: [{ src: "/share-icon.png", sizes: "96x96" }],
       },
       {
-        name: "Join Room",
-        short_name: "Join",
-        description: "Join existing room",
-        url: "/join",
+        name: "Scan QR",
+        short_name: "Scan",
+        description: "Scan QR to join room",
+        url: "/scan",
         icons: [{ src: "/join-icon.png", sizes: "96x96" }],
       },
     ],

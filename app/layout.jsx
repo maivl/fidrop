@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from 'next/font/local';
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
 
 const sfPro = localFont({
@@ -65,6 +66,7 @@ export default function RootLayout({ children }) {
                 className={`${sfPro.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
                 suppressHydrationWarning
             >
+                <ServiceWorkerRegistration />
                 {children}
             </body>
         </html>
