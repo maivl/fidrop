@@ -43,7 +43,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-    title: "fiDrop - Seamless File Sharing",
+    title: "fyDrop - Seamless File Sharing",
     description: "Peer-to-peer file sharing application with WebRTC technology. Fast, secure, and private file transfers.",
     keywords: "file sharing, p2p, webrtc, file transfer, secure sharing",
     authors: [{ name: "figuran04" }],
@@ -59,6 +59,7 @@ export default function RootLayout({ children }) {
     return (
         <html lang="en" suppressHydrationWarning>
             <head>
+                <link rel="icon" href="/favicon.svg"></link>
                 <meta charSet="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
             </head>

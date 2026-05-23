@@ -796,14 +796,14 @@ export default function RoomPage() {
     }, [isHost, availableTargets]);
 
     useEffect(() => {
-        const savedName = localStorage.getItem("fiDrop_deviceName");
+        const savedName = localStorage.getItem("fyDrop_deviceName");
         let name;
 
         if (savedName) {
             name = savedName;
         } else {
             name = generateRandomName();
-            localStorage.setItem("fiDrop_deviceName", name);
+            localStorage.setItem("fyDrop_deviceName", name);
         }
 
         setDeviceName(name);
@@ -1152,24 +1152,27 @@ export default function RoomPage() {
 
                 {/* TOPBAR */}
                 <div className="flex flex-col items-center gap-2 mb-8 sm:mb-10">
-                    <div className="w-14 h-14 bg-black dark:bg-white rounded-2xl flex items-center justify-center">
-                        <svg
-                            className="w-7 h-7 text-white dark:text-black"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={1.8}
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"
-                            />
+                    <div className="w-14 h-14 dark:bg-white rounded-2xl flex items-center justify-center blur-[3px] brightness-75 translate-x-2">
+                        
+                        <svg width="900" height="900" viewBox="0 0 900 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="455" y="121.921" width="66.8412" height="94.23" fill="#9CD7E4"/>
+                        <rect x="650.565" y="403.117" width="66.8412" height="94.23" fill="#9CD7E4"/>
+                        <path d="M287.033 215.634H787.018L612.961 684.366H112.977L287.033 215.634Z" fill="#0B4957"/>
+                        <rect width="100" height="200" transform="matrix(1 0 -0.348081 0.937464 187.033 215.634)" fill="#0B5666"/>
+                        <rect width="100" height="200" transform="matrix(1 0 -0.348081 0.937464 82.5966 496.873)" fill="#4994A5"/>
+                        <rect width="100" height="200" transform="matrix(1 0 -0.348081 0.937464 487.021 215.634)" fill="#106E83"/>
+                        <rect width="100" height="200" transform="matrix(1 0 -0.348081 0.937464 682.594 496.873)" fill="#6BB7C8"/>
+                        <rect width="100" height="200" transform="matrix(1 0 -0.348081 0.937464 787.02 215.634)" fill="#48AEC5"/>
+                        <rect width="200" height="100" transform="matrix(1 0 -0.348081 0.937464 321.841 121.887)" fill="#012E38"/>
+                        <rect width="200" height="100" transform="matrix(1 0 -0.348081 0.937464 217.405 403.127)" fill="#21849A"/>
+                        <rect width="200" height="100" transform="matrix(1 0 -0.348081 0.937464 517.403 403.127)" fill="#439EB3"/>
+                        <rect width="200" height="100" transform="matrix(1 0 -0.348081 0.937464 412.978 684.366)" fill="#9CD7E4"/>
                         </svg>
+
                     </div>
 
                     <h1 className="text-2xl font-medium tracking-tight text-gray-900 dark:text-white">
-                        <Link href="/">fiDrop</Link>
+                        <Link href="/">fyDrop</Link>
                     </h1>
 
                     <p className="text-sm text-gray-400">
@@ -1254,7 +1257,7 @@ export default function RoomPage() {
                                                 </p>
                                                 <button
                                                     onClick={copyRoomUrl}
-                                                    className="px-2.5 py-1 bg-white dark:bg-zinc-700 border border-gray-200 dark:border-zinc-600 rounded-lg text-[11px] font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-600 transition-colors"
+                                                    className="px-2.5 py-1 bg-white dark:bg-zinc-700 border border-gray-200 dark:border-zinc-600 rounded-lg text-[11px] font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-600 transition-colors text-gray-700 dark:text-gray-200"
                                                 >
                                                     Copy
                                                 </button>
@@ -1355,7 +1358,7 @@ export default function RoomPage() {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => rejectUser(user.id)}
-                                                className="px-3 py-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full text-[12px] font-medium hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                                                className="px-3 py-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full text-[12px] font-medium hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors text-gray-700 dark:text-gray-200"
                                             >
                                                 Reject
                                             </button>
@@ -1526,7 +1529,7 @@ export default function RoomPage() {
                                     </p>
                                 </div>
 
-                                <div className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-zinc-800 text-xs font-medium">
+                                <div className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-zinc-800 text-xs font-medium text-gray-700 dark:text-gray-200">
                                     {transfers.length} items
                                 </div>
                             </div>

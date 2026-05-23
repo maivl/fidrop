@@ -1,8 +1,8 @@
 {
-    "name": "fidrop",
+    "name": "fydrop",
     "version": "0.1.0",
     "description": "Peer-to-peer file sharing application with WebRTC",
-    "author": "fiDrop Team",
+    "author": "fyDrop Team",
     "keywords": [
         "file sharing",
         "p2p",

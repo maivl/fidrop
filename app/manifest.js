@@ -1,7 +1,7 @@
 export default function manifest() {
   return {
-    name: "fiDrop - Seamless File Sharing",
-    short_name: "fiDrop",
+    name: "fyDrop - Seamless File Sharing",
+    short_name: "fyDrop",
     description:
       "Peer-to-peer file sharing application with WebRTC technology. Fast, secure, and private file transfers directly between devices.",
     start_url: "/",
@@ -46,14 +46,14 @@ export default function manifest() {
         sizes: "995x812",
         type: "image/jpeg",
         form_factor: "wide",
-        label: "fiDrop desktop interface",
+        label: "fyDrop desktop interface",
       },
       {
         src: "/screenshot-mobile.png",
         sizes: "1920x2796",
         type: "image/png",
         form_factor: "narrow",
-        label: "fiDrop mobile interface",
+        label: "fyDrop mobile interface",
       },
     ],
     shortcuts: [

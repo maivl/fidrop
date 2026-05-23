@@ -98,7 +98,7 @@ export default function ScanPage() {
             Scan QR Code
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
-            Point your camera at a fiDrop room QR code to join
+            Point your camera at a fyDrop room QR code to join
           </p>
         </div>
 

@@ -43,7 +43,7 @@ export default function ReceivePage() {
 
     // Generate device name
     useEffect(() => {
-        const savedName = localStorage.getItem("fiDrop_deviceName");
+        const savedName = localStorage.getItem("fyDrop_deviceName");
         if (savedName) {
             setDeviceName(savedName);
             log(`Device name loaded: ${savedName}`);
@@ -52,7 +52,7 @@ export default function ReceivePage() {
             const nouns = ["Phoenix", "Tiger", "Eagle", "Wolf", "Dragon", "Knight"];
             const name = `${adjectives[Math.floor(Math.random() * adjectives.length)]} ${nouns[Math.floor(Math.random() * nouns.length)]}`;
             setDeviceName(name);
-            localStorage.setItem("fiDrop_deviceName", name);
+            localStorage.setItem("fyDrop_deviceName", name);
             log(`New device name generated: ${name}`);
         }
     }, [log]);

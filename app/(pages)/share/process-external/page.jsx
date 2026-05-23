@@ -24,7 +24,7 @@ export default function ProcessExternalPage() {
     try {
       await fileStorage.init();
 
-      const cache = await caches.open("fidrop-shared-files");
+      const cache = await caches.open("fydrop-shared-files");
       const metaResponse = await cache.match(`meta-${roomId}`);
       if (!metaResponse) {
         setError("No shared files found. They may have expired.");

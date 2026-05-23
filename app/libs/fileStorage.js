@@ -1,6 +1,6 @@
 export class FileStorage {
   constructor() {
-    this.dbName = "FiDropDB";
+    this.dbName = "FyDropDB";
     this.storeName = "files";
     this.db = null;
     this.initPromise = null;

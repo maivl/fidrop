@@ -1,5 +1,5 @@
-const CACHE_NAME = "fidrop-v1";
-const SHARED_CACHE = "fidrop-shared-files";
+const CACHE_NAME = "fydrop-v1";
+const SHARED_CACHE = "fydrop-shared-files";
 const urlsToCache = ["/", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {

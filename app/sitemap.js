@@ -1,5 +1,5 @@
 const BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || "https://fidrop.vercel.app";
+  process.env.NEXT_PUBLIC_BASE_URL || "https://fydrop.vercel.app";
 
 export default async function sitemap() {
   // Static routes

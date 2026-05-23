@@ -51,7 +51,7 @@ export default async function Image() {
               color: "white",
             }}
           >
-            fiDrop
+            fyDrop
           </span>
         </div>
         <div

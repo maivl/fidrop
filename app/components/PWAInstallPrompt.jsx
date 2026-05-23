@@ -43,7 +43,7 @@ export default function PWAInstallPrompt() {
                     </svg>
                 </div>
                 <div className="flex-1">
-                    <h4 className="font-medium text-gray-900 dark:text-white">Install fiDrop</h4>
+                    <h4 className="font-medium text-gray-900 dark:text-white">Install fyDrop</h4>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Share files directly from any app</p>
                 </div>
                 <button

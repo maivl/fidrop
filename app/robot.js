@@ -1,6 +1,6 @@
 export default function robots() {
   const BASE_URL =
-    process.env.NEXT_PUBLIC_BASE_URL || "https://fidrop.vercel.app";
+    process.env.NEXT_PUBLIC_BASE_URL || "https://fyDrop.vercel.app";
 
   return {
     rules: {
