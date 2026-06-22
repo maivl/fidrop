@@ -1307,11 +1307,13 @@ export default function RoomPage() {
 
                                     <div className="flex flex-col">
                                         <span className="text-xs text-gray-500">
+                                            {status === "Connecting..." && "Connecting..."}
                                             {status === "Connected" && !isApproved && "Waiting for approval..."}
                                             {status === "Connected & Approved" && "Connected"}
                                             {status === "Rejected by Host" && "Rejected"}
                                             {status === "Disconnected" && "Disconnected"}
                                             {status === "Connection Error" && "Connection Error"}
+                                            {status === "Configuration Error" && "Configuration Error"}
                                             {status === "Connected as Host" && "Host Mode"}
                                         </span>
                                         {/* {!isHost && !isApproved && status === "Connected" && (
