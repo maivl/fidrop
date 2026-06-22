@@ -28,6 +28,8 @@ export default function ShareRoomPage() {
     const [approvedUsers, setApprovedUsers] = useState(new Set());
     const [myId, setMyId] = useState(null);
     const [isFileReady, setIsFileReady] = useState(false);
+    const [textMessages, setTextMessages] = useState([]);
+    const [textInput, setTextInput] = useState("");
 
     const approvedUsersRef = useRef(new Set());
     const sendingPeersRef = useRef(new Set());
@@ -39,6 +41,7 @@ export default function ShareRoomPage() {
     const processedJoinRequests = useRef(new Set());
     const sendingProgress = useRef({});
     const shouldReconnect = useRef(true);
+    const textMessagesEndRef = useRef(null);
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -389,6 +392,31 @@ export default function ShareRoomPage() {
                     `Data channel error: ${error?.message || "Unknown error"}`,
                     "error"
                 );
+            };
+            channel.onmessage = async (event) => {
+                if (typeof event.data === "string") {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === "text-message") {
+                            setTextMessages((prev) => [
+                                ...prev,
+                                {
+                                    id: data.messageId || Date.now(),
+                                    content: data.content,
+                                    senderName: data.senderName || "Unknown",
+                                    senderId: peerId,
+                                    timestamp: data.timestamp || Date.now(),
+                                    isMine: false,
+                                },
+                            ]);
+                        } else if (data.type === "pong") {
+                            // pong response, ignore
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse message:", e);
+                    }
+                    return;
+                }
             };
             return () => {
                 if (keepAliveInterval) clearInterval(keepAliveInterval);
@@ -809,6 +837,66 @@ export default function ShareRoomPage() {
 
     const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
+    // Auto-scroll to bottom of text messages
+    useEffect(() => {
+        if (textMessagesEndRef.current) {
+            textMessagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [textMessages]);
+
+    const sendTextMessage = useCallback(() => {
+        const text = textInput.trim();
+        if (!text) return;
+
+        const targets = roomUsers.map((u) => u.id);
+        if (targets.length === 0) {
+            log("No connected peers to send text to");
+            return;
+        }
+
+        const messageId = `text-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const message = {
+            type: "text-message",
+            content: text,
+            messageId,
+            timestamp: Date.now(),
+            senderName: deviceName,
+        };
+
+        let sentCount = 0;
+        for (const targetId of targets) {
+            const channel = channelsRef.current[targetId];
+            if (channel && channel.readyState === "open") {
+                channel.send(JSON.stringify(message));
+                sentCount++;
+            }
+        }
+
+        if (sentCount > 0) {
+            setTextMessages((prev) => [
+                ...prev,
+                {
+                    id: messageId,
+                    content: text,
+                    senderName: deviceName,
+                    senderId: myId,
+                    timestamp: Date.now(),
+                    isMine: true,
+                },
+            ]);
+            setTextInput("");
+        } else {
+            log("No connected peers to send text to");
+        }
+    }, [textInput, roomUsers, deviceName, myId, log]);
+
+    const handleTextKeyDown = useCallback((e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendTextMessage();
+        }
+    }, [sendTextMessage]);
+
     const formatBytes = (bytes) => {
         if (!bytes) return "0 B";
 
@@ -1056,6 +1144,96 @@ export default function ShareRoomPage() {
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* TEXT MESSAGES */}
+                <div className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-2xl overflow-hidden mt-6">
+                    <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+                        <div>
+                            <p className="text-[11px] font-medium tracking-widest uppercase text-gray-400 dark:text-zinc-500">
+                                Text Messages
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                                Chat with connected devices
+                            </p>
+                        </div>
+                        {textMessages.length > 0 && (
+                            <button
+                                onClick={() => setTextMessages([])}
+                                className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="px-5 max-h-[250px] overflow-y-auto">
+                        {textMessages.length === 0 && (
+                            <div className="py-6 text-center">
+                                <svg className="w-10 h-10 text-gray-300 dark:text-zinc-700 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                                </svg>
+                                <p className="text-sm text-gray-400">No messages yet</p>
+                            </div>
+                        )}
+
+                        {textMessages.map((msg) => (
+                            <div
+                                key={msg.id}
+                                className={`py-3 ${msg.isMine ? 'pl-8' : 'pr-8'}`}
+                            >
+                                <div className={`flex flex-col ${msg.isMine ? 'items-end' : 'items-start'}`}>
+                                    <p className="text-[11px] text-gray-400 dark:text-zinc-500 mb-1">
+                                        {msg.isMine ? 'You' : msg.senderName}
+                                    </p>
+                                    <div className={`px-3.5 py-2 rounded-2xl max-w-[85%] break-words whitespace-pre-wrap ${
+                                        msg.isMine
+                                            ? 'bg-black dark:bg-white text-white dark:text-black rounded-br-md'
+                                            : 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white rounded-bl-md'
+                                    }`}>
+                                        <p className="text-sm leading-relaxed">{msg.content}</p>
+                                    </div>
+                                    <p className="text-[10px] text-gray-300 dark:text-zinc-600 mt-1">
+                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                        <div ref={textMessagesEndRef} />
+                    </div>
+
+                    {roomUsers.length > 0 && (
+                        <div className="border-t border-gray-100 dark:border-zinc-800 p-3">
+                            <div className="flex items-end gap-2">
+                                <textarea
+                                    value={textInput}
+                                    onChange={(e) => setTextInput(e.target.value)}
+                                    onKeyDown={handleTextKeyDown}
+                                    placeholder="Type a message... (Enter to send)"
+                                    rows={1}
+                                    className="flex-1 resize-none rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all"
+                                    style={{ minHeight: '40px', maxHeight: '120px' }}
+                                    onInput={(e) => {
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                                    }}
+                                />
+                                <button
+                                    onClick={sendTextMessage}
+                                    disabled={!textInput.trim()}
+                                    className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                                        textInput.trim()
+                                            ? 'bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100 cursor-pointer'
+                                            : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600 cursor-not-allowed'
+                                    }`}
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </main>
